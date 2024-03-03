@@ -54,14 +54,6 @@ spark_df = spark_df.withColumnRenamed("index", "Date")
 
 # COMMAND ----------
 
-pandas_df.sort_values(by=["index"], ascending=False)
-
-# COMMAND ----------
-
-display(spark_df)
-
-# COMMAND ----------
-
 path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks/"
 
 spark_df.write.format("delta").partitionBy("Date").mode("append").save(path)
