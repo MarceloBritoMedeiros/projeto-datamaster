@@ -1,0 +1,82 @@
+{
+	"name": "hourly-pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "bronze-layer-ingestion",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/hourly/bronze_layer_ingestion"
+				},
+				"linkedServiceName": {
+					"referenceName": "daily-ingestion-link",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "silver-layer-ingestion",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "bronze-layer-ingestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/hourly/silver_layer_ingestion"
+				},
+				"linkedServiceName": {
+					"referenceName": "daily-ingestion-link",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "gold-layer-ingestion",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "silver-layer-ingestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/hourly/gold_layer_ingestion"
+				},
+				"linkedServiceName": {
+					"referenceName": "daily-ingestion-link",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"annotations": []
+	}
+}
