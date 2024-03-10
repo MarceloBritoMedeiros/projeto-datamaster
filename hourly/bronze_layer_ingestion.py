@@ -1,6 +1,16 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC #### 1) Instalação das dependências
+
+# COMMAND ----------
+
 !pip install investpy
 !pip install yfinance
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #### 2) Importação das bibliotecas
 
 # COMMAND ----------
 
@@ -8,7 +18,10 @@ import investpy as inv
 import yfinance as yf
 import pandas as pd
 from pyspark.sql.functions import col
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from datetime import datetime, timedelta
+
+bronze_path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks/"
 
 # COMMAND ----------
 
@@ -31,32 +44,21 @@ def get_stocks(tickers, date):
 
 # COMMAND ----------
 
-bronze_path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks/"
-bronze_table = spark.read.format("delta").load(bronze_path)
+def get_most_recent_day():
+    try:
+        bronze_table = spark.read.format("delta").load(bronze_path)
+        return bronze_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
+    except:
+        return datetime(2024,2,14)
 
 # COMMAND ----------
 
-particoes = bronze_table.select("Date").distinct().sort(col("Date").desc()).first()
-
-# COMMAND ----------
-
-particoes
-
-# COMMAND ----------
-
-display(bronze_table)
-
-# COMMAND ----------
-
-pandas_df = get_stocks(ibov_stocks(), particoes["Date"])
-spark_df = spark.createDataFrame(pandas_df)
-spark_df = spark_df.withColumnRenamed("index", "Date")
-
-# COMMAND ----------
-
-path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks/"
-
-spark_df.write.format("delta").partitionBy("Date").mode("append").save(path)
+if __name__ == "__main__":
+    day = get_most_recent_day()
+    stocks_data = get_stocks(ibov_stocks(), day)
+    stocks_df = spark.createDataFrame(stocks_data)
+    stocks_df = stocks_df.withColumnRenamed("index", "Date")
+    stocks_df.write.format("delta").partitionBy("Date").mode("append").save(bronze_path)
 
 # COMMAND ----------
 

@@ -14,20 +14,15 @@ bronze_path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks/"
 bronze_table = spark.read.format("delta").load(bronze_path)
 
 silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks/"
-silver_table = spark.read.format("delta").load(silver_path)
 
 # COMMAND ----------
 
-particoes = silver_table.select("Date").distinct().sort(col("Date").desc()).first()
-ingest_table = bronze_table.filter(col("Date")>particoes["Date"])
-
-# COMMAND ----------
-
-
-
-# COMMAND ----------
-
-display(ingest_table.select("Date").distinct())
+def get_most_recent_day(silver_path):
+    try:
+        silver_table = spark.read.format("delta").load(silver_path)
+        return silver_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
+    except:
+        return datetime(2024,2,14)
 
 # COMMAND ----------
 
@@ -43,23 +38,35 @@ display(ingest_table.select("Date").distinct())
 
 # COMMAND ----------
 
-spark_df = ingest_table.groupby("Date", "Ticker").pivot("Price").sum("value")
+def silver_transformation(bronze_path, silver_path):
+    day = get_most_recent_day(silver_path)
+    bronze_table = spark.read.format("delta").load(bronze_path)
+    ingest_table = bronze_table.filter(col("Date")>day)
+    silver_df = ingest_table.groupby("Date", "Ticker").pivot("Price").sum("value")
+    silver_df = silver_df.withColumnRenamed("Adj Close", "Adj_Close")
+    silver_df2 = silver_df.filter((col("Adj_Close").isNotNull()))
+    print("Transformação silver finalizada;")
+    return silver_df2
+
+def info_transformation(info_bronze_path):
+    info_table = spark.read.format("delta").load(info_bronze_path)
+    silver_info_table = info_table.distinct() 
+    print("Tranformação de tabela informacional finalizada")
+    return silver_info_table
 
 # COMMAND ----------
 
-spark_df = spark_df.withColumnRenamed("Adj Close", "Adj_Close")
+def save(df, silver_path):    
+    print(f"Tabela salva em {silver_path}")
 
 # COMMAND ----------
 
-spark_df2 = spark_df.filter((col("Adj_Close").isNotNull()))
+silver_table = silver_transformation(bronze_path, silver_path)
+silver_table.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
 
 # COMMAND ----------
 
-display(spark_df2)
 
-# COMMAND ----------
-
-spark_df2.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
 
 # COMMAND ----------
 

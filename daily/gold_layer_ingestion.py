@@ -1,15 +1,21 @@
 # Databricks notebook source
 import pandas as pd
-from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when
+from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit
 from datetime import datetime, timedelta
+from pyspark.sql.types import StringType
+from cryptography.fernet import Fernet
 
 # COMMAND ----------
 
 silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks_close/"
 gold_path = "dbfs:/mnt/stock_data/gold/yahoo_stocks_close/"
 
-info_silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks_info/"
-info_gold_path = "dbfs:/mnt/stock_data/gold/yahoo_stocks_info/"
+# COMMAND ----------
+
+def decrypt_data(encrypt_data, KEY):
+    f = Fernet(bytes(KEY))
+    decoded_val = f.decrypt(encrypt_data.encode()).decode()
+    return decoded_val
 
 # COMMAND ----------
 
@@ -23,8 +29,12 @@ def get_most_recent_day(gold_path):
 # COMMAND ----------
 
 def previousDayTransformation(day, silver_path):
-    silver_table = spark.read.format("delta").load(silver_path)
-    ingest_table = silver_table.filter(col("Date")>day)
+    silver_table_encripted = spark.read.format("delta").load(silver_path).filter(col("Date")>day)
+    decrypt_udf = udf(decrypt_data, StringType())
+    encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")
+    
+    silver_table = silver_table_encripted.withColumn("Ticker_decripted", decrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
+    silver_table = silver_table.drop("Ticker").withColumnRenamed("Ticker_decripted", "Ticker")
     
     silver_table = silver_table.withColumn("Dia", date_format(col("Date"), "yyyy-MM-dd"))
     silver_table2 = silver_table.withColumnRenamed("Adj_Close", "Adj_Close_ant")
@@ -39,7 +49,6 @@ def previousDayTransformation(day, silver_path):
                             .select(silver_table["*"], 
                                     depara_days["Dia2"])\
                             .drop("Dia")
-    print(silver_table.count())
     silver_table3 = silver_table.join(silver_table2, 
                                   (silver_table.Ticker == silver_table2.Ticker) & 
                                   (silver_table.Dia2 == silver_table2.Dia), 
@@ -59,7 +68,7 @@ def additionalColumns(silver_table3):
                     .otherwise("Decreasing"))
     gold_df = gold_df.withColumn("Date2", date_format("Date", "dd/MM/yyyy"))\
         .withColumn("Date2", date_format("Date", "dd/MM/yyyy"))
-        
+    gold_df = gold_df.withColumn("key", concat(col("Date2"), col("Ticker")))  
     return gold_df
 
 # COMMAND ----------
@@ -68,9 +77,6 @@ day = get_most_recent_day(gold_path)
 gold_table1 = previousDayTransformation(day, silver_path)
 gold_table2 = additionalColumns(gold_table1)
 gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
-info_silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks_info/"
-info_silver_table = spark.read.format("delta").load(info_silver_path)
-info_silver_table.write.format("delta").mode("overwrite").save(info_gold_path)
 
 # COMMAND ----------
 

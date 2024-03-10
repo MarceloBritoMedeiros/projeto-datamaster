@@ -1,7 +1,10 @@
 # Databricks notebook source
 import pandas as pd
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, expr, udf, lit
 from datetime import datetime, timedelta
+from pyspark.sql.types import StringType
+from pyspark.sql.functions import col
+from cryptography.fernet import Fernet
 
 # COMMAND ----------
 
@@ -12,10 +15,8 @@ from datetime import datetime, timedelta
 
 bronze_path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks_close/"
 bronze_table = spark.read.format("delta").load(bronze_path)
-info_bronze_path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks_info/"
 
 silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks_close/"
-info_silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks_info/"
 
 # COMMAND ----------
 
@@ -25,18 +26,6 @@ def get_most_recent_day(silver_path):
         return silver_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
     except:
         return datetime(2024,2,14)
-
-# COMMAND ----------
-
-#bronze_table.count()
-
-# COMMAND ----------
-
-#spark_df.count()
-
-# COMMAND ----------
-
-#spark_df2.count()
 
 # COMMAND ----------
 
@@ -50,27 +39,37 @@ def silver_transformation(bronze_path, silver_path):
     print("Transformação silver finalizada;")
     return silver_df2
 
-def info_transformation(info_bronze_path):
-    info_table = spark.read.format("delta").load(info_bronze_path)
-    silver_info_table = info_table.distinct() 
-    print("Tranformação de tabela informacional finalizada")
-    return silver_info_table
+# COMMAND ----------
+
+def encrypt_data(plain_text, KEY):
+    f = Fernet(KEY)
+    encrip_text = f.encrypt(str(plain_text).encode()).decode()
+    return encrip_text
+
+encrypt_udf = udf(encrypt_data, StringType())
 
 # COMMAND ----------
 
-def save(df, silver_path):    
-    print(f"Tabela salva em {silver_path}")
-
-# COMMAND ----------
-
-# silver_table = silver_transformation(bronze_path, silver_path)
-info_silver_table = info_transformation(info_bronze_path)
-# silver_table.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
-info_silver_table.write.format("delta").mode("overwrite").save(info_silver_path)
+silver_table = silver_transformation(bronze_path, silver_path)
+encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")
+silver_table_encripted = silver_table.withColumn("Ticker", encrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
 
 # COMMAND ----------
 
 
+silver_table_encripted.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
+
+# COMMAND ----------
+
+silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks_close/"
+
+# COMMAND ----------
+
+bronze_table = spark.read.format("delta").load(silver_path)
+
+# COMMAND ----------
+
+display(bronze_table)
 
 # COMMAND ----------
 
