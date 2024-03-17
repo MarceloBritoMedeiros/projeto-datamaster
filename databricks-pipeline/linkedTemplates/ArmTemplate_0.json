@@ -130,7 +130,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/hourly-pipeline')]",
+			"name": "[concat(parameters('factoryName'), '/hourly-ingestion')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -267,7 +267,7 @@
 				"pipelines": [
 					{
 						"pipelineReference": {
-							"referenceName": "hourly-pipeline",
+							"referenceName": "hourly-ingestion",
 							"type": "PipelineReference"
 						},
 						"parameters": {}
@@ -284,7 +284,7 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/hourly-pipeline')]"
+				"[concat(variables('factoryId'), '/pipelines/hourly-ingestion')]"
 			]
 		}
 	]
