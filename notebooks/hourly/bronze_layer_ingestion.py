@@ -6,6 +6,7 @@
 
 !pip install investpy
 !pip install yfinance
+!pip install holidays
 
 # COMMAND ----------
 
@@ -20,8 +21,28 @@ import pandas as pd
 from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 from datetime import datetime, timedelta
+import holidays
 
 bronze_path = "dbfs:/mnt/stock_data/bronze/yahoo_stocks/"
+
+# COMMAND ----------
+
+def is_business_day(date):
+    """
+    Informa se o dia informado é dia útil ou não
+    Args:
+        date (datetime): dia a ser verificado
+    Returns:
+        boolean: se é dia útil ou não
+    """
+    # Verifica se é um dia da semana (segunda a sexta-feira)
+    if date.weekday() < 5:
+        # Verifica se não é um feriado
+        feriados = holidays.country_holidays("BR")
+        if not date in feriados[f"{datetime.now().year}-01-01":f"{datetime.now().year}-12-31"]:
+            if date.hour>=9 or date.hour<=18:
+                return True
+    return False
 
 # COMMAND ----------
 
@@ -43,7 +64,7 @@ def ibov_stocks():
 
 def get_stocks(tickers, date):
     """
-    Cria uma tabela contendo as ações e suas respectivas informações. Aqui, cada ação vem como uma coluna e suas informações como subcolunas
+    Cria uma tabela contendo as ações e suas respectivas informações. Aqui, os rótulos de algumas colunas estão contidos na coluna Price
 
     Args:
         tickers (list): lista de ações listadas na B3
@@ -74,12 +95,23 @@ def get_most_recent_day():
 
 # COMMAND ----------
 
+logs = []
 if __name__ == "__main__":
-    day = get_most_recent_day()
-    stocks_data = get_stocks(ibov_stocks(), day)
-    stocks_df = spark.createDataFrame(stocks_data)
-    stocks_df = stocks_df.withColumnRenamed("index", "Date")
-    stocks_df.write.format("delta").partitionBy("Date").mode("append").save(bronze_path)
+    if is_business_day(datetime.now()):
+        try:
+            day = get_most_recent_day()
+            logs.append(((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            stocks_data = get_stocks(ibov_stocks(), day)
+            logs.append(((f"Ações extraidas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            stocks_df = spark.createDataFrame(stocks_data)
+            logs.append(((f"Dataframe criado, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            stocks_df = stocks_df.withColumnRenamed("index", "Date")
+            stocks_df.write.format("delta").partitionBy("Date").mode("append").save(bronze_path)
+            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+        except Exception as e:
+            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+        logs_df = spark.createDataFrame(logs, ["Log"])
+        logs_df.write.mode("append").text("dbfs:/mnt/stock_data/bronze/bronze_log")
 
 # COMMAND ----------
 

@@ -4,6 +4,8 @@
 
 # COMMAND ----------
 
+!pip install holidays
+import holidays
 import pandas as pd
 from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit
 from datetime import datetime, timedelta
@@ -25,6 +27,25 @@ gold_path = "dbfs:/mnt/stock_data/gold/yahoo_stocks/"
 
 # MAGIC %md
 # MAGIC #### 3) Tratamentos da Camada Gold
+
+# COMMAND ----------
+
+def is_business_day(date):
+    """
+    Informa se o dia informado é dia útil ou não
+    Args:
+        date (datetime): dia a ser verificado
+    Returns:
+        boolean: se é dia útil ou não
+    """
+    # Verifica se é um dia da semana (segunda a sexta-feira)
+    if date.weekday() < 5:
+        # Verifica se não é um feriado
+        feriados = holidays.country_holidays("BR")
+        if not date in feriados[f"{datetime.now().year}-01-01":f"{datetime.now().year}-12-31"]:
+            if date.hour>=9 or date.hour<=18:
+                return True
+    return False
 
 # COMMAND ----------
 
@@ -106,11 +127,21 @@ def additionalColumns(silver_table3):
 
 # COMMAND ----------
 
-if __name__ == "__main__": 
-    day = get_most_recent_day(gold_path)
-    gold_table1 = previousDayTransformation(day, silver_path, silver_close_path)
-    gold_table2 = additionalColumns(gold_table1)
-    gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
+logs = []
+if __name__ == "__main__":
+    if is_business_day(datetime.now()):
+        try:
+            day = get_most_recent_day(gold_path)
+            logs.append(((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            gold_table1 = previousDayTransformation(day, silver_path, silver_close_path)
+            gold_table2 = additionalColumns(gold_table1)
+            logs.append(((f"Tranformações gold aplicadas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
+            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+        except Exception as e:
+            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+        logs_df = spark.createDataFrame(logs, ["Log"])
+        logs_df.write.mode("append").text("dbfs:/mnt/stock_data/gold/gold_log")
 
 # COMMAND ----------
 

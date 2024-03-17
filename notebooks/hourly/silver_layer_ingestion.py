@@ -4,6 +4,8 @@
 
 # COMMAND ----------
 
+!pip install holidays
+import holidays
 import pandas as pd
 from pyspark.sql.functions import col
 from datetime import datetime, timedelta
@@ -27,9 +29,28 @@ silver_path = "dbfs:/mnt/stock_data/silver/yahoo_stocks/"
 
 # COMMAND ----------
 
+def is_business_day(date):
+    """
+    Informa se o dia informado é dia útil ou não
+    Args:
+        date (datetime): dia a ser verificado
+    Returns:
+        boolean: se é dia útil ou não
+    """
+    # Verifica se é um dia da semana (segunda a sexta-feira)
+    if date.weekday() < 5:
+        # Verifica se não é um feriado
+        feriados = holidays.country_holidays("BR")
+        if not date in feriados[f"{datetime.now().year}-01-01":f"{datetime.now().year}-12-31"]:
+            if date.hour>=9 or date.hour<=18:
+                return True
+    return False
+
+# COMMAND ----------
+
 def get_most_recent_day(silver_path):
     """
-    Cria uma tabela contendo as ações e suas respectivas informações. Aqui, cada ação vem como uma coluna e suas informações como subcolunas
+    Cria uma tabela contendo as ações e suas respectivas informações. Aqui, os rótulos de algumas colunas estão contidos na coluna Price
 
     Args:
         tickers (list): lista de ações listadas na B3
@@ -84,16 +105,22 @@ def encrypt_data(plain_text, KEY):
 
 # COMMAND ----------
 
-if __name__ == "__main__": 
-    encrypt_udf = udf(encrypt_data, StringType())
-    silver_table = silver_transformation(bronze_path, silver_path)
-    encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")
-    silver_table_encripted = silver_table.withColumn("Ticker", encrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
-    silver_table_encripted.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
-
-# COMMAND ----------
-
-
+logs = []
+if __name__ == "__main__":
+    if is_business_day(datetime.now()):
+        try:
+            encrypt_udf = udf(encrypt_data, StringType())
+            silver_table = silver_transformation(bronze_path, silver_path)
+            logs.append(((f"Tabela silver transformada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")
+            silver_table_encripted = silver_table.withColumn("Ticker", encrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
+            logs.append(((f"Coluna Ticker criptografada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            silver_table_encripted.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
+            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+        except Exception as e:
+            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+        logs_df = spark.createDataFrame(logs, ["Log"])
+        logs_df.write.mode("append").text("dbfs:/mnt/stock_data/silver/silver_log")
 
 # COMMAND ----------
 
