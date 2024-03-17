@@ -40,7 +40,7 @@ def is_business_day(date):
         # Verifica se não é um feriado
         feriados = holidays.country_holidays("BR")
         if not date in feriados[f"{datetime.now().year}-01-01":f"{datetime.now().year}-12-31"]:
-            if date.hour>=9 or date.hour<=18:
+            if date.hour>=12 or date.hour<=21:
                 return True
     return False
 
@@ -109,7 +109,7 @@ if __name__ == "__main__":
             stocks_df.write.format("delta").partitionBy("Date").mode("append").save(bronze_path)
             logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
         except Exception as e:
-            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/bronze/bronze_log")
 

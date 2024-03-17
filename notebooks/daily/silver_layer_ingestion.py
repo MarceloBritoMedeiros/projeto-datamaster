@@ -119,7 +119,7 @@ if __name__ == "__main__":
             silver_table_encripted.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
             logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
         except Exception as e:
-            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/silver/silver_close_log")
 

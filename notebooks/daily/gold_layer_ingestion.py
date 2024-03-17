@@ -7,7 +7,7 @@
 !pip install holidays
 import holidays
 import pandas as pd
-from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit
+from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit, expr
 from datetime import datetime, timedelta
 from pyspark.sql.types import StringType
 from cryptography.fernet import Fernet
@@ -162,7 +162,7 @@ if __name__ == "__main__":
             gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
             logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
         except Exception as e:
-            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/gold/gold_close_log")
 

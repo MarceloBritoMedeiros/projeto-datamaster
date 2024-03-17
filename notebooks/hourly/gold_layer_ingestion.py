@@ -7,7 +7,7 @@
 !pip install holidays
 import holidays
 import pandas as pd
-from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit
+from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit, expr
 from datetime import datetime, timedelta
 from pyspark.sql.types import StringType
 from cryptography.fernet import Fernet
@@ -43,7 +43,7 @@ def is_business_day(date):
         # Verifica se não é um feriado
         feriados = holidays.country_holidays("BR")
         if not date in feriados[f"{datetime.now().year}-01-01":f"{datetime.now().year}-12-31"]:
-            if date.hour>=9 or date.hour<=18:
+            if date.hour>=12 or date.hour<=21:
                 return True
     return False
 
@@ -79,12 +79,12 @@ def previousDayTransformation(day, silver_path, silver_close_path):
     #Silver diária
     silver_table_encripted = spark.read.format("delta").load(silver_path).filter(col("Date")>day)
     decrypt_udf = udf(decrypt_data, StringType())
-    encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")    
+    encription_key = "IUlmIR12doubSltXKyIyGgJcWFgcmx8OXKD4LUMAOE0="#dbutils.secrets.get(scope="myblob", key="silver_key")    
     silver_table = silver_table_encripted.withColumn("Ticker_decripted", decrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
     silver_table = silver_table.drop("Ticker").withColumnRenamed("Ticker_decripted", "Ticker")
 
     #Silver fechamento
-    silver_table2_encripted = spark.read.format("delta").load(silver_path_close).filter(col("Date")>day)    
+    silver_table2_encripted = spark.read.format("delta").load(silver_close_path).filter(col("Date")>day)    
     silver_table2 = silver_table2_encripted.withColumn("Ticker_decripted", decrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
     silver_table2 = silver_table2.drop("Ticker").withColumnRenamed("Ticker_decripted", "Ticker")
 
@@ -139,10 +139,6 @@ if __name__ == "__main__":
             gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
             logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
         except Exception as e:
-            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/gold/gold_log")
-
-# COMMAND ----------
-
-

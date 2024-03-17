@@ -7,8 +7,11 @@
 !pip install holidays
 import holidays
 import pandas as pd
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, expr, udf, lit
 from datetime import datetime, timedelta
+from pyspark.sql.types import StringType
+from pyspark.sql.functions import col
+from cryptography.fernet import Fernet
 
 # COMMAND ----------
 
@@ -42,7 +45,7 @@ def is_business_day(date):
         # Verifica se não é um feriado
         feriados = holidays.country_holidays("BR")
         if not date in feriados[f"{datetime.now().year}-01-01":f"{datetime.now().year}-12-31"]:
-            if date.hour>=9 or date.hour<=18:
+            if date.hour>=12 or date.hour<=21:
                 return True
     return False
 
@@ -112,13 +115,13 @@ if __name__ == "__main__":
             encrypt_udf = udf(encrypt_data, StringType())
             silver_table = silver_transformation(bronze_path, silver_path)
             logs.append(((f"Tabela silver transformada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
-            encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")
+            encription_key = "IUlmIR12doubSltXKyIyGgJcWFgcmx8OXKD4LUMAOE0="#dbutils.secrets.get(scope="myblob", key="silver_key")
             silver_table_encripted = silver_table.withColumn("Ticker", encrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
             logs.append(((f"Coluna Ticker criptografada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
             silver_table_encripted.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
             logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
         except Exception as e:
-            logs.append((f"{e}, datetime.now().strftime('%Y-%m-%d %H:%M:%S')",))
+            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/silver/silver_log")
 
