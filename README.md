@@ -1,4 +1,4 @@
-**OBJETIVO DO CASE**
+## **OBJETIVO DO CASE**
 
 O objetivo deste case é a criação de uma ferramenta para monitorar as
 ações listadas na B3, a bolsa de valores do Brasil, oferecendo
@@ -13,10 +13,7 @@ mercado.
 ![A screenshot of a graph Description automatically
 generated](./pictures/image1.png)
 
-**ARQUITETURA DE SOLUÇÃO**
-
-![A diagram of a workflow Description automatically generated with
-medium confidence](./pictures/image2.png)
+## **ARQUITETURA DE SOLUÇÃO**
 
 A Arquitetura de Solução consiste em uma pipeline que segue os seguintes
 passos:
@@ -27,11 +24,11 @@ passos:
 -   Transformação dos dados, por meio de uma plataforma de computação
     distribuída
 
--   Armazenamento dos dados em um datalake, seguindo a arquitetura
-    medalhão (Bronze, Silver e Gold).
+-   Armazenamento dos dados em um datalake, seguindo a **arquitetura
+    medalhão** (Bronze, Silver e Gold).
 
--   Scheduling: para este processo rodar, serão criados dois
-    agendamentos, um de nível horário e outro de nível diário. Tal
+-   Scheduling: para este processo rodar, serão criados **dois
+    agendamentos**, um de nível horário e outro de nível diário. Tal
     distinção foi feita devido a uma peculiaridade da API, no qual os
     dados oficiais de fechamento do dia somente são retornados se o
     parâmetro de granularidade a nível diário for informado.
@@ -39,14 +36,17 @@ passos:
 -   Consumo dos dados: por fim, os dados são utilizados para a criação
     de um Dashboard e também estão disponibilizados para análises.
 
-**ARQUITETURA TÉCNICA**
+![A diagram of a workflow Description automatically generated with
+medium confidence](./pictures/image2.png)
+
+## **ARQUITETURA TÉCNICA**
 
 Para executar o projeto descrito na Arquitetura de Solução, foi
 desenhada uma arquitetura totalmente baseada na Cloud da Azure. Abaixo
 estão listadas as ferramentas escolhidas:
 
 -   ADLS Gen2: é utilizado como o principal repositório de dados. Ele
-    fornece uma arquitetura hierárquica de armazenamento que suporta
+    fornece uma **arquitetura hierárquica de armazenamento** que suporta
     dados estruturados e não estruturados. Em relação ao formato de
     dados para o armazenamento das tabelas, foi escolhido o Delta devido
     ao seu bom desempenho em tarefas de leitura e gravação e ao recurso
@@ -68,8 +68,8 @@ estão listadas as ferramentas escolhidas:
 ![A diagram of a company Description automatically
 generated](./pictures/image3.png)
 
-**EXPLICAÇÃO SOBRE O CASE DESENVOLVIDO1 - Pipeline de dados
-(Databricks)**
+## **EXPLICAÇÃO SOBRE O CASE DESENVOLVIDO**
+**1 - Pipeline de dados (Databricks)**
 
 Os códigos se encontram na pasta Notebooks, que contém duas subpastas, a
 Daily (que contém os códigos da pipeline horária) e a Hourly (que contém
@@ -82,7 +82,7 @@ generated](./pictures/image4.png)
 
 O processo pode ser dividido nas etapas abaixo:
 
--   Processamento da Camada Bronze: busca armazenar a informações das
+1.   Processamento da Camada Bronze: busca armazenar a informações das
     ações no formato que são consumidos pela API
 
     -   Extração dos dados: Consumo de dados da API do yfinance, que
@@ -108,7 +108,7 @@ O processo pode ser dividido nas etapas abaixo:
 ![A screenshot of a computer Description automatically
 generated](./pictures/image5.png)
 
--   Processamento da Camada Silver: dado o formato da tabela na camada
+2.   Processamento da Camada Silver: dado o formato da tabela na camada
     bronze, aqui são feitos alguns tratamentos para torna-la mais
     aplicável para as análises.
 
@@ -132,7 +132,7 @@ generated](./pictures/image5.png)
 
 ![](./pictures/image6.png)
 
--   Processamento da Camada Gold: aqui o objetivo é criar uma tabela
+3.   Processamento da Camada Gold: aqui o objetivo é criar uma tabela
     ideal para o consumo do Dashboard, contendo todas as colunas
     necessárias para a criação das visões.
 
@@ -153,8 +153,8 @@ generated](./pictures/image5.png)
 
 ![](./pictures/image7.png)
 
-\* No começo de todas as etapas é rodada uma função que verifica se o
-dia atual é um dia útil. Caso contrário, o processo não é executado.
+\* **No começo de todas as etapas é rodada uma função que verifica se o
+dia atual é um dia útil. Caso contrário, o processo não é executado.**
 
 A conexão do Databricks é feita no arquivo mounting_data_access.py e
 também pode ser descrita na documentação abaixo:
@@ -162,13 +162,9 @@ também pode ser descrita na documentação abaixo:
 https://docs.databricks.com/en/dbfs/mounts.html#mount-adls-gen2-or-blob-storage-with-abfs
 
 Todas as chaves e tokens utilizados no código são ocultas por meio de
-Secret Keys e todos os passos do código são registrados em um arquivo
-.log em cada camada do Data Lake
+**Secret Keys** e todos os passos do código são registrados em uma base txt em cada camada do Data Lake.
 
 **2 -- Orquestração dos notebooks e Scheduling (Data Factory)**
-
-![A screenshot of a computer Description automatically
-generated](./pictures/image8.png)
 
 O Data Factory tem como principal objetivo atuar na parte de Scheduling
 dos notebooks. Foram criados dois Pipelines, o hourly-ingestion, que
@@ -179,7 +175,10 @@ Visando a economia de recursos, quando um trigger é ativado, é criado um
 novo cluster que é encerrado assim que o processo termina, evitando
 provisionamento desnecessário de recursos.
 
-Todos os arquivos deste processo estão na pasta datafactory
+Todos os arquivos deste processo estão na pasta datafactory.
+
+![A screenshot of a computer Description automatically
+generated](./pictures/image8.png)
 
 **3 -- Criação do Data Lake (ADLS Gen2)**
 
@@ -194,33 +193,33 @@ etapa:
     habilitadas:
 
     a.  Namespace hierárquico: possibilita a organização do repositório
-        em pastas
+        em pastas;
 
     b.  Desempenho Standard: opção de baixo custo, para a implementação
-        inicial do projeto (pode ser mudado dependendo da escabilidade)
+        inicial do projeto (pode ser mudado dependendo da escabilidade);
 
     c.  Redundância LRS (local): opção de baixo custo, para a
         implementação inicial do projeto (pode ser mudado dependendo da
-        escabilidade)
+        escabilidade);
 
-2.  Criação do Conteiner
+2.  Criação do Conteiner;
 
 3.  Criação das camadas bronze, silver e gold. Dentro de cada camada há
     duas tabelas a yahoo_stocks (tabela horária) e a yahoo stocks_close
-    (tabela diária)
+    (tabela diária);
 
 4.  Configuração do registro de aplicativo: ele é utilizado para
     autenticar e autorizar aplicativos e serviços que interagem com os
     recursos do Azure. Seu principal objetivo neste projeto é fornecer
     as credenciais necessárias para o Databricks conseguir acessar o
-    Data Lake
+    Data Lake;
 
 5.  Atribuição de um IAM ao conteiner: responsável por definir os
-    usuários e os tipos de acesso que cada usuário possui
+    usuários e os tipos de acesso que cada usuário possui;
 
 6.  Atribuição de um ACL ao conteiner: define permissões específicas
     para cada arquivo ou diretório, determinando quem pode ler,
-    escrever, modificar ou excluir esses itens.
+    escrever, modificar ou excluir esses itens;
 
 **4 -- Criação do Dashboard (Power BI)**
 
@@ -274,7 +273,7 @@ Lake.
 
     -   E utilização de arquivos do tipo Delta
 
-**MELHORIAS E CONSIDERAÇÕES FINAIS**
+## **MELHORIAS E CONSIDERAÇÕES FINAIS**
 
 Em relação à futuras melhorias, é possível citar os pontos abaixo:
 
@@ -286,8 +285,8 @@ Em relação à futuras melhorias, é possível citar os pontos abaixo:
 -   Escolha de uma ferramenta de Scheduling mais eficiente, que
     possibilite agendamentos mais específicos, dispensando o uso da
     função de verificar dia útil do python
-
--   Otimizações de performance no código
+    
+-   Aumento da recorrência de atualização
 
 O projeto criou uma ferramenta abrangente para monitorar as ações na B3,
 oferecendo informações dinâmicas para orientar investimentos. A
