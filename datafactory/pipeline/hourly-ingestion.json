@@ -1,5 +1,5 @@
 {
-	"name": "hourly-pipeline",
+	"name": "hourly-ingestion",
 	"properties": {
 		"activities": [
 			{
