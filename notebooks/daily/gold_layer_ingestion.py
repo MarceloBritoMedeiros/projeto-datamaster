@@ -7,7 +7,7 @@
 !pip install holidays
 import holidays
 import pandas as pd
-from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit, expr
+from pyspark.sql.functions import col, date_format,hour, minute, second, monotonically_increasing_id, when, concat, lit, expr, round
 from datetime import datetime, timedelta
 from pyspark.sql.types import StringType
 from cryptography.fernet import Fernet
@@ -77,7 +77,7 @@ def get_most_recent_day(gold_path):
         gold_table = spark.read.format("delta").load(gold_path)
         return gold_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
     except:
-        return datetime(2024,2,19)
+        return datetime.now()
 
 # COMMAND ----------
 
@@ -141,6 +141,10 @@ def additionalColumns(silver_table3):
     gold_df = gold_df.withColumn("Date2", date_format("Date", "dd/MM/yyyy"))\
         .withColumn("Date2", date_format("Date", "dd/MM/yyyy"))
     gold_df = gold_df.withColumn("key", concat(col("Date2"), col("Ticker")))  
+
+    number_columns = ["Adj_Close", "Close", "High", "Low", "Open", "Marketcap", "Volatility", "Volatility_perc"]
+    for i in number_columns:
+        gold_df = gold_df.withColumn(i, round(col(i), 2))
     return gold_df
 
 # COMMAND ----------
@@ -155,14 +159,25 @@ if __name__ == "__main__":
     if is_business_day(datetime.now()):
         try:
             day = get_most_recent_day(gold_path)
-            logs.append(((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
             gold_table1 = previousDayTransformation(day, silver_path)
             gold_table2 = additionalColumns(gold_table1)
-            logs.append(((f"Tranformações gold aplicadas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Tranformações gold aplicadas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
             gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
-            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
         except Exception as e:
-            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            message = (f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)
+            logs.append(message)
+            print(message)
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/gold/gold_close_log")
 

@@ -66,20 +66,38 @@ def decrypt_data(encrypt_data, KEY):
 # COMMAND ----------
 
 def get_most_recent_day(gold_path):
+    """
+    Cria uma tabela contendo as ações e suas respectivas informações. Aqui, cada ação vem como uma coluna e suas informações como subcolunas
+
+    Args:
+        tickers (list): lista de ações listadas na B3
+        date (datetime): data da última atualização da base
+    Returns:
+        pandas.DataFrame: tabela contendo as ações e suas respectivas informações
+    """
     try:
         gold_table = spark.read.format("delta").load(gold_path)
         return gold_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
     except:
-        return datetime(2024,2,19)
+        return datetime.now()
 
 # COMMAND ----------
 
 def previousDayTransformation(day, silver_path, silver_close_path):
+    """
+    Filtra a tabela silver mais recente, aplica a função de descriptografia e cria uma coluna com os dados de fechamento do dia anterior para cada ação por meio de self joins
+
+    Args:
+        day (datetime): data da última atualização da base
+        silver_path (str): caminho da tabela silver
+    Returns:
+        spark.DataFrame: tabela contendo os tratamentos listados
+    """
     
     #Silver diária
     silver_table_encripted = spark.read.format("delta").load(silver_path).filter(col("Date")>day)
     decrypt_udf = udf(decrypt_data, StringType())
-    encription_key = "IUlmIR12doubSltXKyIyGgJcWFgcmx8OXKD4LUMAOE0="#dbutils.secrets.get(scope="myblob", key="silver_key")    
+    encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")    
     silver_table = silver_table_encripted.withColumn("Ticker_decripted", decrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
     silver_table = silver_table.drop("Ticker").withColumnRenamed("Ticker_decripted", "Ticker")
 
@@ -88,12 +106,12 @@ def previousDayTransformation(day, silver_path, silver_close_path):
     silver_table2 = silver_table2_encripted.withColumn("Ticker_decripted", decrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
     silver_table2 = silver_table2.drop("Ticker").withColumnRenamed("Ticker_decripted", "Ticker")
 
-    silver_table2 = spark.read.format("delta").load(silver_close_path)
     silver_table = silver_table.withColumn("Dia", date_format(col("Date"), "yyyy-MM-dd"))
     silver_table2 = silver_table2.withColumn("Dia", date_format(col("Date"), "yyyy-MM-dd"))\
             .withColumnRenamed("Adj_Close", "Adj_Close_ant")
 
     days = silver_table2.select("Dia").distinct().sort(col("Dia")).withColumn("Index", monotonically_increasing_id()).withColumn("Index2", col("Index")+1)
+    
     day1 = days.select(col("Dia"), col("Index"))
     day2 = days.select(col("Dia").alias("Dia2"), col("Index2"))
     depara_days = day1.join(day2, day1.Index==day2.Index2, "inner").select(col("Dia"), col("Dia2"))
@@ -114,6 +132,16 @@ def previousDayTransformation(day, silver_path, silver_close_path):
 # COMMAND ----------
 
 def additionalColumns(silver_table3):
+    """
+    Filtra a tabela silver mais recente, aplica a função de descriptografia e cria uma coluna com os dados de fechamento do dia anterior para cada ação por meio de self joins
+
+    Args:
+        day (datetime): data da última atualização da base
+        silver_path (str): caminho da tabela silver
+    Returns:
+        spark.DataFrame: tabela contendo os tratamentos listados
+    """
+    
     gold_df = silver_table3.withColumn("Marketcap", col("Adj_Close")*col("Volume"))\
     .withColumn("Volatility", col("Adj_Close")-col("Adj_Close_ant"))\
         .withColumn("Volatility_perc", (col("Adj_Close")/col("Adj_Close_ant"))-1)\
@@ -132,13 +160,28 @@ if __name__ == "__main__":
     if is_business_day(datetime.now()):
         try:
             day = get_most_recent_day(gold_path)
-            logs.append(((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
             gold_table1 = previousDayTransformation(day, silver_path, silver_close_path)
             gold_table2 = additionalColumns(gold_table1)
-            logs.append(((f"Tranformações gold aplicadas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Tranformações gold aplicadas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
             gold_table2.write.format("delta").partitionBy("Date").mode("append").save(gold_path)
-            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+            
         except Exception as e:
-            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            message =(f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)
+            logs.append(message)
+            print(message)
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/gold/gold_log")
+
+# COMMAND ----------
+
+

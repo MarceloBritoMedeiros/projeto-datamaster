@@ -66,7 +66,7 @@ def get_most_recent_day(silver_path):
         silver_table = spark.read.format("delta").load(silver_path)
         return silver_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
     except:
-        return datetime(2024,2,14)
+        return datetime.now()
 
 # COMMAND ----------
 
@@ -114,14 +114,24 @@ if __name__ == "__main__":
         try:
             encrypt_udf = udf(encrypt_data, StringType())
             silver_table = silver_transformation(bronze_path, silver_path)
-            logs.append(((f"Tabela silver transformada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
-            encription_key = "IUlmIR12doubSltXKyIyGgJcWFgcmx8OXKD4LUMAOE0="#dbutils.secrets.get(scope="myblob", key="silver_key")
+            message = ((f"Tabela silver transformada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+            
+            encription_key = dbutils.secrets.get(scope="myblob", key="silver_key")
             silver_table_encripted = silver_table.withColumn("Ticker", encrypt_udf(col('Ticker'), lit(encription_key.encode('utf-8'))))
-            logs.append(((f"Coluna Ticker criptografada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Coluna Ticker criptografada, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
             silver_table_encripted.write.format("delta").partitionBy("Date").mode("append").save(silver_path)
-            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
         except Exception as e:
-            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            message = (f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)
+            logs.append(message)
+            print(message)
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/silver/silver_log")
 

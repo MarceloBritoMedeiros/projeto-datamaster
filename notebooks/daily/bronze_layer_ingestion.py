@@ -95,7 +95,7 @@ def get_most_recent_day():
         bronze_table = spark.read.format("delta").load(bronze_path)
         return bronze_table.select("Date").distinct().sort(col("Date").desc()).first()["Date"]
     except:
-        return datetime(2024,2,14)
+        return datetime.now()
 
 # COMMAND ----------
 
@@ -109,16 +109,30 @@ if __name__ == "__main__":
     if is_business_day(datetime.now()):
         try:
             day = get_most_recent_day()
-            logs.append(((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Dia mais recente: {day}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            print(message)
+            logs.append(message)
+            
             stocks_data = get_stocks(ibov_stocks(), day)
-            logs.append(((f"Ações extraidas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Ações extraidas, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            print(message)
+            logs.append(message)
+
             stocks_df = spark.createDataFrame(stocks_data)
-            logs.append(((f"Dataframe criado, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Dataframe criado, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
+
             stocks_df = stocks_df.withColumnRenamed("index", "Date")
             stocks_df.write.format("delta").partitionBy("Date").mode("append").save(bronze_path)
-            logs.append(((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)))
+            message = ((f"Tabela salva, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            logs.append(message)
+            print(message)
         except Exception as e:
-            logs.append((f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",))
+            message = (f"{e}, {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",)
+            logs.append(message)
+            print(message)
+
         logs_df = spark.createDataFrame(logs, ["Log"])
         logs_df.write.mode("append").text("dbfs:/mnt/stock_data/bronze/bronze_close_log")
 
