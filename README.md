@@ -277,16 +277,11 @@ Lake.
 
 Em relação à futuras melhorias, é possível citar os pontos abaixo:
 
--   Organização do código: foram feitos dois códigos com funções
-    semelhantes para cada tipo de atualização, contudo, o ideal seria as
-    funções estarem em um arquivo separado, divididas dentre diferentes
-    classes, seguindo o paradigma de Orientação Objeto.
+-   Organização do código
+        
+-   Otimizações que acompanhem o aumento de escabilidade do projeto.
 
--   Escolha de uma ferramenta de Scheduling mais eficiente, que
-    possibilite agendamentos mais específicos, dispensando o uso da
-    função de verificar dia útil do python
-    
--   Aumento da recorrência de atualização
+-   Adoção de uma ferramenta que envie notificações consumindo a base de logs, quando houver um erro no código, a fim de melhorar a observabilidade.
 
 O projeto criou uma ferramenta abrangente para monitorar as ações na B3,
 oferecendo informações dinâmicas para orientar investimentos. A
