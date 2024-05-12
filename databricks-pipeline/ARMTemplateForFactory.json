@@ -10,6 +10,10 @@
 		"daily-ingestion-link_accessToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'daily-ingestion-link'"
+		},
+		"daily-ingestion-link_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0512-232935-ukgf3db2"
 		}
 	},
 	"variables": {
@@ -210,14 +214,7 @@
 						"type": "SecureString",
 						"value": "[parameters('daily-ingestion-link_accessToken')]"
 					},
-					"newClusterNodeType": "Standard_DS3_v2",
-					"newClusterNumOfWorker": "1",
-					"newClusterSparkEnvVars": {
-						"PYSPARK_PYTHON": "/databricks/python3/bin/python3"
-					},
-					"newClusterVersion": "10.4.x-scala2.12",
-					"clusterOption": "Fixed",
-					"newClusterInitScripts": []
+					"existingClusterId": "[parameters('daily-ingestion-link_properties_typeProperties_existingClusterId')]"
 				}
 			},
 			"dependsOn": []

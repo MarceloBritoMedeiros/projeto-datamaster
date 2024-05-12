@@ -8,6 +8,9 @@
 		"daily-ingestion-link_accessToken": {
 			"value": ""
 		},
+		"daily-ingestion-link_properties_typeProperties_existingClusterId": {
+			"value": "0512-232935-ukgf3db2"
+		},
 		"containerUri": {
 			"value": ""
 		},

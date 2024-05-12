@@ -11,6 +11,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'daily-ingestion-link'"
 		},
+		"daily-ingestion-link_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0512-232935-ukgf3db2"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -40,6 +44,9 @@
 					},
 					"daily-ingestion-link_accessToken": {
 						"value": "[parameters('daily-ingestion-link_accessToken')]"
+					},
+					"daily-ingestion-link_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('daily-ingestion-link_properties_typeProperties_existingClusterId')]"
 					}
 				}
 			},
