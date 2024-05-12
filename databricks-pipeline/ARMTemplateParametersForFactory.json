@@ -7,9 +7,6 @@
 		},
 		"daily-ingestion-link_accessToken": {
 			"value": ""
-		},
-		"daily-ingestion-link_properties_typeProperties_existingClusterId": {
-			"value": "0310-164210-nn5xdmrv"
 		}
 	}
 }

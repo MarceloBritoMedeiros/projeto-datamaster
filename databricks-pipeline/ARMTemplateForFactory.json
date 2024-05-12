@@ -10,10 +10,6 @@
 		"daily-ingestion-link_accessToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'daily-ingestion-link'"
-		},
-		"daily-ingestion-link_properties_typeProperties_existingClusterId": {
-			"type": "string",
-			"defaultValue": "0310-164210-nn5xdmrv"
 		}
 	},
 	"variables": {
@@ -39,7 +35,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/daily/bronze_layer_ingestion"
+							"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/daily/bronze_layer_ingestion"
 						},
 						"linkedServiceName": {
 							"referenceName": "daily-ingestion-link",
@@ -66,7 +62,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/daily/silver_layer_ingestion"
+							"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/daily/silver_layer_ingestion"
 						},
 						"linkedServiceName": {
 							"referenceName": "daily-ingestion-link",
@@ -93,7 +89,7 @@
 						},
 						"userProperties": [],
 						"typeProperties": {
-							"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/daily/gold_layer_ingestion"
+							"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/daily/gold_layer_ingestion"
 						},
 						"linkedServiceName": {
 							"referenceName": "daily-ingestion-link",
@@ -209,12 +205,19 @@
 				"annotations": [],
 				"type": "AzureDatabricks",
 				"typeProperties": {
-					"domain": "https://adb-7904308049823087.7.azuredatabricks.net",
+					"domain": "https://adb-3758151877594204.4.azuredatabricks.net",
 					"accessToken": {
 						"type": "SecureString",
 						"value": "[parameters('daily-ingestion-link_accessToken')]"
 					},
-					"existingClusterId": "[parameters('daily-ingestion-link_properties_typeProperties_existingClusterId')]"
+					"newClusterNodeType": "Standard_DS3_v2",
+					"newClusterNumOfWorker": "1",
+					"newClusterSparkEnvVars": {
+						"PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+					},
+					"newClusterVersion": "10.4.x-scala2.12",
+					"clusterOption": "Fixed",
+					"newClusterInitScripts": []
 				}
 			},
 			"dependsOn": []
