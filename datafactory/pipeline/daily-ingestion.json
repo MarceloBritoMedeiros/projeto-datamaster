@@ -15,7 +15,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/daily/bronze_layer_ingestion"
+					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/daily/bronze_layer_ingestion"
 				},
 				"linkedServiceName": {
 					"referenceName": "daily-ingestion-link",
@@ -42,7 +42,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/daily/silver_layer_ingestion"
+					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/daily/silver_layer_ingestion"
 				},
 				"linkedServiceName": {
 					"referenceName": "daily-ingestion-link",
@@ -69,7 +69,7 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/daily/gold_layer_ingestion"
+					"notebookPath": "/Repos/marcelobmedeiros@outlook.com/projeto-datamaster/notebooks/daily/gold_layer_ingestion"
 				},
 				"linkedServiceName": {
 					"referenceName": "daily-ingestion-link",
